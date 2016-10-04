@@ -1,77 +1,57 @@
-var Botkit = require('botkit')
+var slack = require('slack');
+//var dotenv = require('dotenv');
+//dotenv.load();
+var bot = slack.rtm.client();
+var token = process.env.SLACK_TOKEN;
 
-var token = process.env.SLACK_TOKEN
+// logs: ws, started, close, listen, etc... in addition to the RTM event handler methods
+console.log(Object.keys(bot));
 
-var controller = Botkit.slackbot({
-  // reconnect to Slack RTM when connection goes bad
-  retry: Infinity,
-  debug: false
-})
+// do something with the rtm.start payload
+bot.started(function(payload) {
+  console.log('payload from rtm.start', payload);
+});
 
-// Assume single team mode if we have a SLACK_TOKEN
-if (token) {
-  console.log('Starting in single-team mode')
-  controller.spawn({
-    token: token,
-    retry: Infinity
-  }).startRTM(function (err, bot, payload) {
-    if (err) {
-      throw new Error(err)
+// respond to a user_typing message
+bot.user_typing(function(msg) {
+  console.log('several people are coding', msg);
+  slack.chat.postMessage({token: token, channel: "bizdev", text: "f u"});
+});
+
+// start listening to the slack team associated to the token
+bot.listen({token:token});
+/*
+var Settings = require('./settings.json');
+var moment = require('moment');
+var ToggleTimeCheck = require('./togglTestFile.js');
+var team = Settings.teamname;
+
+
+  slack.users.list({token: token}, function(err, data) {
+    if(err) {
+      console.log(err);
+      throw err;
     }
 
-    console.log('Connected to Slack RTM')
-  })
-// Otherwise assume multi-team mode - setup beep boop resourcer connection
-} else {
-  console.log('Starting in Beep Boop multi-team mode')
-  require('beepboop-botkit').start(controller, { debug: true })
-}
+    var members = data.members;
+    var now = new moment();
+    var weekBefore = new moment().subtract(7, "days");
 
-controller.on('bot_channel_join', function (bot, message) {
-  bot.reply(message, "I'm here!")
-})
+    // console.log(data.members);
+    for (var i = 0; i < members.length; i++) {
+      var member = members[i];
+      if (member.is_bot)
+        continue;
 
-controller.hears(['hello', 'hi'], ['direct_mention'], function (bot, message) {
-  bot.reply(message, 'Hello.')
-})
-
-controller.hears(['hello', 'hi'], ['direct_message'], function (bot, message) {
-  bot.reply(message, 'Hello.')
-  bot.reply(message, 'It\'s nice to talk to you directly.')
-})
-
-controller.hears('.*', ['mention'], function (bot, message) {
-  bot.reply(message, 'You really do care about me. :heart:')
-})
-
-controller.hears('help', ['direct_message', 'direct_mention'], function (bot, message) {
-  var help = 'I will respond to the following messages: \n' +
-      '`bot hi` for a simple message.\n' +
-      '`bot attachment` to see a Slack attachment message.\n' +
-      '`@<your bot\'s name>` to demonstrate detecting a mention.\n' +
-      '`bot help` to see this again.'
-  bot.reply(message, help)
-})
-
-controller.hears(['attachment'], ['direct_message', 'direct_mention'], function (bot, message) {
-  var text = 'Beep Beep Boop is a ridiculously simple hosting platform for your Slackbots.'
-  var attachments = [{
-    fallback: text,
-    pretext: 'We bring bots to life. :sunglasses: :thumbsup:',
-    title: 'Host, deploy and share your bot in seconds.',
-    image_url: 'https://storage.googleapis.com/beepboophq/_assets/bot-1.22f6fb.png',
-    title_link: 'https://beepboophq.com/',
-    text: text,
-    color: '#7CD197'
-  }]
-
-  bot.reply(message, {
-    attachments: attachments
-  }, function (err, resp) {
-    console.log(err, resp)
-  })
-})
-
-controller.hears('.*', ['direct_message', 'direct_mention'], function (bot, message) {
-  bot.reply(message, 'Sorry <@' + message.user + '>, I don\'t understand. \n')
-})
+      //console.log(member);
+      ToggleTimeCheck.getTimeSpent(weekBefore, now, member.profile.email, function(err, time) {
+        if (time < Settings.minHours) {
+          var text = "You have recorded " + time + " work hours for the week, and are behind the minimum hours by " + (Settings.minHours - time) + " hours";
+          //console.log('before post a message');
+          slack.chat.postMessage({token: token, channel: Settings.channelID, text: text});
+          //console.log(text);
+        }
+      });
+    }
+  });
+//};*/
